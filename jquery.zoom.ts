@@ -1,7 +1,6 @@
 type ZoomOptionsDefault = {
 	url			: string | false;
 	on			: 'mouseover' | 'grab' | 'click' | 'toggle';
-	duration	: number;
 	target		: HTMLElement | false;
 	touch		: boolean;
 	magnify		: number;
@@ -50,7 +49,6 @@ declare namespace JQuery {
 		url: false,
 		callback: false,
 		target: false,
-		duration: 120,
 		on: 'mouseover', // other options: grab, click, toggle
 		touch: true, // enables a touch fallback
 		onZoomIn: false,
@@ -68,26 +66,17 @@ declare namespace JQuery {
 			yRatio: number,
 			offset: JQuery.Coordinates,
 			$target = $(target),
-			position = $target.css('position'),
 			$source = $(source);
 
-		// The parent element needs positioning so that the zoomed element can be correctly positioned within.
-		target.style.position = /(absolute|fixed)/.test(position) ? position : 'relative';
-		target.style.overflow = 'hidden';
 		img.style.width = img.style.height = '';
 
 		$(img)
 			.addClass('zoomImg')
 			.css({
-				position: 'absolute',
 				top: 0,
 				left: 0,
-				opacity: 0,
 				width: img.width * magnify,
 				height: img.height * magnify,
-				border: 'none',
-				maxWidth: 'none',
-				maxHeight: 'none'
 			})
 			.appendTo(target);
 
@@ -148,13 +137,11 @@ declare namespace JQuery {
 				}
 			}
 
-			$source.one('zoom.destroy', function(position: string, overflow: string){
+			$source.one('zoom.destroy', function() {
 				$source.off(".zoom");
-				target.style.position = position;
-				target.style.overflow = overflow;
 				img.onload = null;
 				$img.remove();
-			}.bind(this, target.style.position, target.style.overflow));
+			});
 
 			img.onload = function () {
 				const zoom = $.zoom(target, source, img, settings.magnify);
@@ -163,15 +150,11 @@ declare namespace JQuery {
 					zoom.init();
 					zoom.move(e);
 
-					// Skip the fade-in for IE8 and lower since it chokes on fading-in
-					// and changing position based on mousemovement at the same time.
-					$img.stop()
-					.fadeTo($.support.opacity ? settings.duration : 0, 1, $.isFunction(settings.onZoomIn) ? settings.onZoomIn.call(img) : false);
+					$img.addClass('zoomImg-visible');
 				}
 
 				function stop() {
-					$img.stop()
-					.fadeTo(settings.duration, 0, $.isFunction(settings.onZoomOut) ? settings.onZoomOut.call(img) : false);
+					$img.removeClass('zoomImg-visible');
 				}
 
 				// Mouse events
