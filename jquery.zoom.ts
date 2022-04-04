@@ -78,6 +78,20 @@ declare namespace JQuery {
 			})
 			.appendTo(target);
 
+		let eLatestMove: JQuery.MouseMoveEvent | Touch | undefined;
+		const updatePosition = () => {
+			let left = (eLatestMove!.pageX! - offset!.left),
+				top = (eLatestMove!.pageY! - offset!.top);
+
+			top = Math.max(Math.min(top, sourceHeight), 0);
+			left = Math.max(Math.min(left, sourceWidth), 0);
+
+			img.style.left = (left * -xRatio) + 'px';
+			img.style.top = (top * -yRatio) + 'px';
+
+			eLatestMove = undefined;
+		};
+
 		return {
 			init: function() {
 				targetWidth = $target.outerWidth()!;
@@ -101,14 +115,11 @@ declare namespace JQuery {
 					return;
 				}
 
-				let left = (e.pageX! - offset.left),
-					top = (e.pageY! - offset.top);
+				if(eLatestMove === undefined) {
+					requestAnimationFrame(updatePosition);
+				}
 
-				top = Math.max(Math.min(top, sourceHeight), 0);
-				left = Math.max(Math.min(left, sourceWidth), 0);
-
-				img.style.left = (left * -xRatio) + 'px';
-				img.style.top = (top * -yRatio) + 'px';
+				eLatestMove	= e;
 			}
 		};
 	};

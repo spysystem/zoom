@@ -1,7 +1,7 @@
 {
 	"name": "@spysystem/jquery-zoom",
 	"description": "Enlarge images on click or mouseover.",
-	"version": "1.7.26",
+	"version": "1.7.27",
 	"keywords": [
 		"zoom",
 		"images",
