@@ -2,7 +2,6 @@ type ZoomOptionsDefault = {
 	url			: string | false;
 	on			: 'mouseover' | 'grab' | 'click' | 'toggle';
 	target		: HTMLElement | false;
-	touch		: boolean;
 	magnify		: number;
 	callback	: ((this: HTMLImageElement) => any) | false;
 	onZoomIn	: ((this: HTMLImageElement) => any) | false;
@@ -50,7 +49,6 @@ declare namespace JQuery {
 		callback: false,
 		target: false,
 		on: 'mouseover', // other options: grab, click, toggle
-		touch: true, // enables a touch fallback
 		onZoomIn: false,
 		onZoomOut: false,
 		magnify: 1
@@ -64,7 +62,7 @@ declare namespace JQuery {
 			sourceWidth: number,
 			xRatio: number,
 			yRatio: number,
-			offset: JQuery.Coordinates,
+			offset: JQuery.Coordinates | undefined,
 			$target = $(target),
 			$source = $(source);
 
@@ -99,6 +97,10 @@ declare namespace JQuery {
 				offset = $source.offset()!;
 			},
 			move: function (e: JQuery.MouseMoveEvent | Touch) {
+				if(offset === undefined) {
+					return;
+				}
+
 				let left = (e.pageX! - offset.left),
 					top = (e.pageY! - offset.top);
 
@@ -120,9 +122,7 @@ declare namespace JQuery {
 				source = this,
 				$source = $(source),
 				img = document.createElement('img'),
-				$img = $(img),
-				clicked = false,
-				touched = false;
+				$img = $(img);
 
 			const mousemove = 'mousemove.zoom';
 
@@ -145,6 +145,7 @@ declare namespace JQuery {
 
 			img.onload = function () {
 				const zoom = $.zoom(target, source, img, settings.magnify);
+				let touchStarted = false;
 
 				function start(e: any) {
 					zoom.init();
@@ -157,94 +158,22 @@ declare namespace JQuery {
 					$img.removeClass('zoomImg-visible');
 				}
 
-				// Mouse events
-				if (settings.on === 'grab') {
-					$source
-						.on('mousedown.zoom',
-							function (e) {
-								if (e.which === 1) {
-									$(document).one('mouseup.zoom',
-										function () {
-											stop();
-
-											$(document).off(mousemove, zoom.move);
-										}
-									);
-
-									start(e);
-
-									$(document).on(mousemove, zoom.move);
-
-									e.preventDefault();
-								}
-							}
-						);
-				} else if (settings.on === 'click') {
-					$source.on('click.zoom',
-						function (e) {
-							if (clicked) {
-								// bubble the event up to the document to trigger the unbind.
-								return;
-							} else {
-								clicked = true;
-								start(e);
-								$(document).on(mousemove, zoom.move);
-								$(document).one('click.zoom',
-									function () {
-										stop();
-										clicked = false;
-										$(document).off(mousemove, zoom.move);
-									}
-								);
-								return false;
-							}
+				$source
+					.on('touchstart.zoom', () => {
+						touchStarted	= true;
+					})
+					.on('mouseenter.zoom', (e) => {
+						if(touchStarted) {
+							touchStarted	= false;
+							return;
 						}
-					);
-				} else if (settings.on === 'toggle') {
-					$source.on('click.zoom',
-						function (e) {
-							if (clicked) {
-								stop();
-							} else {
-								start(e);
-							}
-							clicked = !clicked;
-						}
-					);
-				} else if (settings.on === 'mouseover') {
-					zoom.init(); // Preemptively call init because IE7 will fire the mousemove handler before the hover handler.
 
-					$source
-						.on('mouseenter.zoom', start)
-						.on('mouseleave.zoom', stop)
-						.on(mousemove, zoom.move);
-				}
-
-				// Touch fallback
-				if (settings.touch) {
-					$source
-						.on('touchstart.zoom', function (e: JQuery.TouchStartEvent) {
-							e.preventDefault();
-							if (touched) {
-								touched = false;
-								stop();
-							} else {
-								touched = true;
-								start( e.originalEvent!.touches[0] || e.originalEvent!.changedTouches[0] );
-							}
-						})
-						.on('touchmove.zoom', function (e) {
-							e.preventDefault();
-							zoom.move( e.originalEvent!.touches[0] || e.originalEvent!.changedTouches[0] );
-						})
-						.on('touchend.zoom', function (e) {
-							e.preventDefault();
-							if (touched) {
-								touched = false;
-								stop();
-							}
-						});
-				}
+						start(e);
+					})
+					.on('mouseleave.zoom', () => {
+						stop();
+					})
+					.on(mousemove, zoom.move);
 
 				if ($.isFunction(settings.callback)) {
 					settings.callback.call(img);
