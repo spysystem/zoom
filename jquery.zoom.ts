@@ -155,6 +155,8 @@ declare namespace JQuery {
 			});
 
 			img.onload = function () {
+				img.onload = null
+
 				const zoom = $.zoom(target, source, img, settings.magnify);
 				let touchStarted = false;
 
@@ -163,10 +165,18 @@ declare namespace JQuery {
 					zoom.move(e);
 
 					$img.addClass('zoomImg-visible');
+
+					if(typeof settings.onZoomIn === 'function') {
+						settings.onZoomIn.call(img);
+					}
 				}
 
 				function stop() {
 					$img.removeClass('zoomImg-visible');
+
+					if(typeof settings.onZoomOut === 'function') {
+						settings.onZoomOut.call(img);
+					}
 				}
 
 				$source
