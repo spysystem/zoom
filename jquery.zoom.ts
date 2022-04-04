@@ -1,10 +1,52 @@
+type ZoomOptionsDefault = {
+	url			: string | false;
+	on			: 'mouseover' | 'grab' | 'click' | 'toggle';
+	duration	: number;
+	target		: HTMLElement | false;
+	touch		: boolean;
+	magnify		: number;
+	callback	: ((this: HTMLImageElement) => any) | false;
+	onZoomIn	: ((this: HTMLImageElement) => any) | false;
+	onZoomOut	: ((this: HTMLImageElement) => any) | false;
+};
+type ZoomOptions = Partial<ZoomOptionsDefault>;
+
+interface Zoom {
+	init	: () => any;
+	move	: (e: JQuery.MouseMoveEvent | Touch) => any;
+}
+interface JQueryStatic {
+	zoom	: (target: HTMLElement, source: HTMLElement, img: HTMLImageElement, magnify: number) => Zoom;
+}
+
+// noinspection JSUnusedGlobalSymbols
+interface Window {
+	jQuery: JQueryStatic;
+}
+// noinspection JSUnusedGlobalSymbols
+interface JQuery {
+	zoom	: {
+		(options?: ZoomOptions): JQuery;
+		defaults: ZoomOptionsDefault;
+	};
+}
+declare namespace JQuery {
+	// noinspection JSUnusedGlobalSymbols
+	interface TypeToTriggeredEventMap<TDelegateTarget, TData, TCurrentTarget, TTarget> {
+		'touchstart.zoom'	: JQuery.TouchStartEvent<TDelegateTarget, TData, TCurrentTarget, TTarget>;
+		'touchmove.zoom'	: JQuery.TouchMoveEvent<TDelegateTarget, TData, TCurrentTarget, TTarget>;
+		'touchend.zoom'		: JQuery.TouchEndEvent<TDelegateTarget, TData, TCurrentTarget, TTarget>;
+		'mousemove.zoom'	: JQuery.MouseMoveEvent<TDelegateTarget, TData, TCurrentTarget, TTarget>;
+	}
+}
+
 /*!
 	Zoom 1.7.21
 	license: MIT
 	http://www.jacklmoore.com/zoom
 */
-(function ($) {
-	var defaults = {
+(function ($: JQueryStatic) {
+	const defaults = {
 		url: false,
 		callback: false,
 		target: false,
@@ -14,17 +56,17 @@
 		onZoomIn: false,
 		onZoomOut: false,
 		magnify: 1
-	};
+	} as ZoomOptionsDefault;
 
 	// Core Zoom Logic, independent of event listeners.
 	$.zoom = function(target, source, img, magnify) {
-		var targetHeight,
+		let targetHeight,
 			targetWidth,
-			sourceHeight,
-			sourceWidth,
-			xRatio,
-			yRatio,
-			offset,
+			sourceHeight: number,
+			sourceWidth: number,
+			xRatio: number,
+			yRatio: number,
+			offset: JQuery.Coordinates,
 			$target = $(target),
 			position = $target.css('position'),
 			$source = $(source);
@@ -51,25 +93,25 @@
 
 		return {
 			init: function() {
-				targetWidth = $target.outerWidth();
-				targetHeight = $target.outerHeight();
+				targetWidth = $target.outerWidth()!;
+				targetHeight = $target.outerHeight()!;
 
 				if (source === target) {
-					sourceWidth = targetWidth;
-					sourceHeight = targetHeight;
+					sourceWidth = targetWidth!;
+					sourceHeight = targetHeight!;
 				} else {
-					sourceWidth = $source.outerWidth();
-					sourceHeight = $source.outerHeight();
+					sourceWidth = $source.outerWidth()!;
+					sourceHeight = $source.outerHeight()!;
 				}
 
 				xRatio = (img.width - targetWidth) / sourceWidth;
 				yRatio = (img.height - targetHeight) / sourceHeight;
 
-				offset = $source.offset();
+				offset = $source.offset()!;
 			},
-			move: function (e) {
-				var left = (e.pageX - offset.left),
-					top = (e.pageY - offset.top);
+			move: function (e: JQuery.MouseMoveEvent | Touch) {
+				let left = (e.pageX! - offset.left),
+					top = (e.pageY! - offset.top);
 
 				top = Math.max(Math.min(top, sourceHeight), 0);
 				left = Math.max(Math.min(left, sourceWidth), 0);
@@ -80,24 +122,24 @@
 		};
 	};
 
-	$.fn.zoom = function (options) {
-		return this.each(function () {
-			var
-			settings = $.extend({}, defaults, options || {}),
-			//target will display the zoomed image
-			target = settings.target && $(settings.target)[0] || this,
-			//source will provide zoom location info (thumbnail)
-			source = this,
-			$source = $(source),
-			img = document.createElement('img'),
-			$img = $(img),
-			mousemove = 'mousemove.zoom',
-			clicked = false,
-			touched = false;
+	const ZoomStatic = function (this: JQuery, options?: ZoomOptions) {
+		return this.each(function (this: HTMLElement) {
+			let settings = $.extend({}, defaults, options || {}) as ZoomOptionsDefault,
+				//target will display the zoomed image
+				target = settings.target && $(settings.target)[0] || this,
+				//source will provide zoom location info (thumbnail)
+				source = this,
+				$source = $(source),
+				img = document.createElement('img'),
+				$img = $(img),
+				clicked = false,
+				touched = false;
+
+			const mousemove = 'mousemove.zoom';
 
 			// If a url wasn't specified, look for an image element.
 			if (!settings.url) {
-				var srcElement = source.querySelector('img');
+				const srcElement = source.querySelector('img');
 				if (srcElement) {
 					settings.url = srcElement.getAttribute('data-src') || srcElement.currentSrc || srcElement.src;
 				}
@@ -106,7 +148,7 @@
 				}
 			}
 
-			$source.one('zoom.destroy', function(position, overflow){
+			$source.one('zoom.destroy', function(position: string, overflow: string){
 				$source.off(".zoom");
 				target.style.position = position;
 				target.style.overflow = overflow;
@@ -115,9 +157,9 @@
 			}.bind(this, target.style.position, target.style.overflow));
 
 			img.onload = function () {
-				var zoom = $.zoom(target, source, img, settings.magnify);
+				const zoom = $.zoom(target, source, img, settings.magnify);
 
-				function start(e) {
+				function start(e: any) {
 					zoom.init();
 					zoom.move(e);
 
@@ -198,19 +240,19 @@
 				// Touch fallback
 				if (settings.touch) {
 					$source
-						.on('touchstart.zoom', function (e) {
+						.on('touchstart.zoom', function (e: JQuery.TouchStartEvent) {
 							e.preventDefault();
 							if (touched) {
 								touched = false;
 								stop();
 							} else {
 								touched = true;
-								start( e.originalEvent.touches[0] || e.originalEvent.changedTouches[0] );
+								start( e.originalEvent!.touches[0] || e.originalEvent!.changedTouches[0] );
 							}
 						})
 						.on('touchmove.zoom', function (e) {
 							e.preventDefault();
-							zoom.move( e.originalEvent.touches[0] || e.originalEvent.changedTouches[0] );
+							zoom.move( e.originalEvent!.touches[0] || e.originalEvent!.changedTouches[0] );
 						})
 						.on('touchend.zoom', function (e) {
 							e.preventDefault();
@@ -220,7 +262,7 @@
 							}
 						});
 				}
-				
+
 				if ($.isFunction(settings.callback)) {
 					settings.callback.call(img);
 				}
@@ -232,5 +274,7 @@
 		});
 	};
 
-	$.fn.zoom.defaults = defaults;
+	ZoomStatic.defaults = defaults;
+
+	$.fn.zoom = ZoomStatic;
 }(window.jQuery));

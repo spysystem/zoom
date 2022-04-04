@@ -1,0 +1,5 @@
+.idea
+node_modules
+jquery.zoom.js
+jquery.zoom.min.js
+yarn.lock

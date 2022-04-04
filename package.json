@@ -1,27 +1,25 @@
 {
-	"name": "jquery-zoom",
+	"name": "@spysystem/jquery-zoom",
 	"description": "Enlarge images on click or mouseover.",
-	"version": "1.7.21",
+	"version": "1.7.22",
 	"keywords": [
 		"zoom",
 		"images",
 		"ui",
 		"jquery-plugin"
 	],
-	"author": {
-		"name": "Jack Moore",
-		"url": "http://www.jacklmoore.com",
-		"email": "hello@jacklmoore.com"
+	"scripts": {
+		"compile": "uglifyjs -c --comments '/license:/' jquery.zoom.js -o jquery.zoom.min.js",
+		"prepack": "tsc -p tsconfig.json && yarn run compile"
 	},
-	"main": "jquery.zoom.js",
+	"main": "jquery.zoom.min.js",
 	"license": "MIT",
-	"homepage": "http://www.jacklmoore.com/zoom",
-	"demo": "http://www.jacklmoore.com/zoom",
-	"repository": {
-		"type": "git",
-		"url": "http://github.com/jackmoore/zoom.git"
-	},
 	"dependencies": {
+		"@types/jquery": ">=1.7",
 		"jquery": ">=1.7"
+	},
+	"devDependencies": {
+		"typescript": "^4.6.3",
+		"uglify-js": "^3.15.3"
 	}
 }
