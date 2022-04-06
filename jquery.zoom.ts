@@ -10,9 +10,14 @@ type ZoomOptionsDefault = {
 };
 type ZoomOptions = Partial<ZoomOptionsDefault>;
 
+type PositionData = {
+	pageX	: number;
+	pageY	: number;
+}
+
 interface Zoom {
 	init	: () => any;
-	move	: (e: JQuery.MouseMoveEvent | Touch) => any;
+	move	: (e: PositionData) => any;
 }
 interface JQueryStatic {
 	zoom	: (target: HTMLElement, source: HTMLElement, img: HTMLImageElement, magnify: number, deadZone: number) => Zoom;
@@ -36,6 +41,7 @@ declare namespace JQuery {
 		'touchmove.zoom'	: JQuery.TouchMoveEvent<TDelegateTarget, TData, TCurrentTarget, TTarget>;
 		'touchend.zoom'		: JQuery.TouchEndEvent<TDelegateTarget, TData, TCurrentTarget, TTarget>;
 		'mousemove.zoom'	: JQuery.MouseMoveEvent<TDelegateTarget, TData, TCurrentTarget, TTarget>;
+		'mouseenter.zoom'	: JQuery.MouseEnterEvent<TDelegateTarget, TData, TCurrentTarget, TTarget>;
 	}
 }
 
@@ -79,7 +85,7 @@ declare namespace JQuery {
 			})
 			.appendTo(target);
 
-		let eLatestMove: JQuery.MouseMoveEvent | Touch | undefined;
+		let eLatestMove: PositionData | undefined;
 		const updatePosition = () => {
 			let left = (eLatestMove!.pageX! - offset!.left),
 				top = (eLatestMove!.pageY! - offset!.top);
@@ -123,7 +129,7 @@ declare namespace JQuery {
 
 				offset = $source.offset()!;
 			},
-			move: function (e: JQuery.MouseMoveEvent | Touch) {
+			move: function (e) {
 				if(offset === undefined) {
 					return;
 				}
@@ -173,7 +179,7 @@ declare namespace JQuery {
 				const zoom = $.zoom(target, source, img, settings.magnify, settings.deadZone);
 				let touchStarted = false;
 
-				function start(e: any) {
+				function start(e: PositionData) {
 					zoom.init();
 					zoom.move(e);
 
@@ -193,6 +199,9 @@ declare namespace JQuery {
 				}
 
 				$source
+					.on('zoom.move-to-cursor', (e, positionData: PositionData) => {
+						start(positionData);
+					})
 					.on('touchstart.zoom', () => {
 						touchStarted	= true;
 					})
