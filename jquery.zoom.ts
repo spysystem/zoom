@@ -3,6 +3,7 @@ type ZoomOptionsDefault = {
 	on			: 'mouseover' | 'grab' | 'click' | 'toggle';
 	target		: HTMLElement | false;
 	magnify		: number;
+	deadZone	: number;
 	callback	: ((this: HTMLImageElement) => any) | false;
 	onZoomIn	: ((this: HTMLImageElement) => any) | false;
 	onZoomOut	: ((this: HTMLImageElement) => any) | false;
@@ -14,7 +15,7 @@ interface Zoom {
 	move	: (e: JQuery.MouseMoveEvent | Touch) => any;
 }
 interface JQueryStatic {
-	zoom	: (target: HTMLElement, source: HTMLElement, img: HTMLImageElement, magnify: number) => Zoom;
+	zoom	: (target: HTMLElement, source: HTMLElement, img: HTMLImageElement, magnify: number, deadZone: number) => Zoom;
 }
 
 // noinspection JSUnusedGlobalSymbols
@@ -39,23 +40,23 @@ declare namespace JQuery {
 }
 
 /*!
-	Zoom 1.7.21
 	license: MIT
 	http://www.jacklmoore.com/zoom
 */
 (function ($: JQueryStatic) {
-	const defaults = {
+	const defaults: ZoomOptionsDefault = {
 		url: false,
 		callback: false,
 		target: false,
 		on: 'mouseover', // other options: grab, click, toggle
 		onZoomIn: false,
 		onZoomOut: false,
-		magnify: 1
-	} as ZoomOptionsDefault;
+		magnify: 1,
+		deadZone: 0,
+	};
 
 	// Core Zoom Logic, independent of event listeners.
-	$.zoom = function(target, source, img, magnify) {
+	$.zoom = function(target, source, img, magnify, deadZone) {
 		let targetHeight,
 			targetWidth,
 			sourceHeight: number,
@@ -82,6 +83,18 @@ declare namespace JQuery {
 		const updatePosition = () => {
 			let left = (eLatestMove!.pageX! - offset!.left),
 				top = (eLatestMove!.pageY! - offset!.top);
+
+			if(deadZone > 0){
+				const centerLeft = sourceWidth / 2;
+				const centerTop = sourceHeight / 2;
+				if(left < centerLeft || left > centerLeft){
+					left = left - deadZone * (((centerLeft - left) * 100 / centerLeft) / 100);
+
+					if(top < centerTop || top > centerTop){
+						top = top - deadZone * (((centerTop - top) * 100 / centerTop) / 100);
+					}
+				}
+			}
 
 			top = Math.max(Math.min(top, sourceHeight), 0);
 			left = Math.max(Math.min(left, sourceWidth), 0);
@@ -157,7 +170,7 @@ declare namespace JQuery {
 			img.onload = function () {
 				img.onload = null
 
-				const zoom = $.zoom(target, source, img, settings.magnify);
+				const zoom = $.zoom(target, source, img, settings.magnify, settings.deadZone);
 				let touchStarted = false;
 
 				function start(e: any) {
